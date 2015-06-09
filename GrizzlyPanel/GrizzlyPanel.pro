@@ -13,8 +13,17 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    grizzlydata.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    grizzlydata.h
 
 FORMS    += mainwindow.ui
+
+INCLUDEPATH += $$PWD/include
+
+LIBS += -L"$$PWD/lib" -lgrizzlypp
+
+unix: CONFIG += link_pkgconfig
+unix: PKGCONFIG += libusb-1.0
