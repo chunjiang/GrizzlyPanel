@@ -32,6 +32,14 @@ MainWindow::MainWindow(QWidget *parent) :
     timer->start(250);
     unitconv = 1;
     ui->encratio->setText(QString::number(unitconv));
+
+    if (current != NULL) {
+        last_ticks = current->read_encoder();
+    } else {
+        last_ticks = 0;
+    }
+
+    pidmode = CMODE_NO_PID;
 }
 
 MainWindow::~MainWindow()
@@ -61,12 +69,25 @@ void MainWindow::show_feedback() {
     }
 
     if (!ui->throttletarget->hasFocus()) {
-        ui->throttletarget->setValue((int)(current->read_target()));
+        ui->throttletarget->setValue(current->read_target());
     }
 
+    char mode = current->read_single_register(ADDR_MODE_RO);
     if (!ui->isenabled->hasFocus()) {
-        char mode = current->read_single_register(ADDR_MODE_RO);
         ui->isenabled->setChecked((mode & 0x01) == 1);
+    }
+
+    if (!ui->pidcontrol->hasFocus()) {
+        ui->pidcontrol->setChecked((mode & 0x06) == CMODE_POSITION_PID);
+    }
+
+    if (!(ui->pslider->hasFocus() || ui->islider->hasFocus() || ui->dslider->hasFocus() || ui->pbox->hasFocus() || ui->ibox->hasFocus() || ui->dbox->hasFocus())) {
+        float constants[3];
+        current->read_pid_constants(constants);
+
+        ui->pbox->setValue(constants[0]);
+        ui->ibox->setValue(constants[1]);
+        ui->dbox->setValue(constants[2]);
     }
 
     float amps = current->read_current();
@@ -74,6 +95,9 @@ void MainWindow::show_feedback() {
 
     int count = current->read_encoder();
     ui->displacement->setText(QString::number(count * unitconv));
+
+    ui->encspeed->setText(QString::number((count - last_ticks) * unitconv * 4));
+    last_ticks = count;
 }
 
 void MainWindow::on_currentlimit_returnPressed()
@@ -97,17 +121,22 @@ void MainWindow::on_accellimit_returnPressed()
     ui->accellimit->setText(QString::number(current->read_as_int(ADDR_ACCELLIMIT, 1)));
 }
 
+void MainWindow::on_throttleslider_valueChanged(int value)
+{
+    ui->throttletarget->setValue(value / 100.0);
+}
+
 void MainWindow::on_throttletarget_valueChanged(double throttle)
 {
     if (current == NULL) {
         return;
     }
 
-    current->set_target(throttle);
+    if (pidmode == CMODE_NO_PID) {
+        current->set_target(throttle);
+    }
 
-    double realtarget = current->read_target();
-    ui->throttletarget->setValue(realtarget);
-    ui->throttleslider->setValue(realtarget * 100);
+    ui->throttleslider->setValue(throttle * 100);
 }
 
 void MainWindow::on_throttlemax_valueChanged(int maxval)
@@ -126,14 +155,12 @@ void MainWindow::on_isenabled_clicked(bool checked)
         ui->isenabled->setChecked(false);
         return;
     }
-
     if (checked) {
-        int success = current->enable();
-        ui->isenabled->setChecked(success == 1);
+        current->enable();
     } else {
         current->disable();
-        ui->isenabled->setChecked(false);
     }
+    ui->isenabled->setChecked(checked == 1);
 }
 
 void MainWindow::on_encratio_returnPressed()
@@ -141,9 +168,9 @@ void MainWindow::on_encratio_returnPressed()
     unitconv = ui->encratio->text().toDouble();
 }
 
-void MainWindow::on_throttleslider_valueChanged(int value)
+void MainWindow::on_encreset_clicked()
 {
-    ui->throttletarget->setValue(value / 100.0);
+    current->write_encoder(0);
 }
 
 void MainWindow::on_pmax_valueChanged(double val)
@@ -176,16 +203,6 @@ void MainWindow::on_dmin_valueChanged(double val)
     ui->dslider->setMinimum(val * 100);
 }
 
-void MainWindow::on_targetmax_valueChanged(double val)
-{
-    ui->targetslider->setMaximum(val * 100);
-}
-
-void MainWindow::on_targetmin_valueChanged(double val)
-{
-    ui->targetslider->setMinimum(val * 100);
-}
-
 void MainWindow::on_pslider_valueChanged(int value)
 {
     ui->pbox->setValue(value / 100.0);
@@ -203,16 +220,19 @@ void MainWindow::on_dslider_valueChanged(int value)
 
 void MainWindow::on_pbox_valueChanged(double val)
 {
+    current->write_as_int(ADDR_PCONSTANT, float_to_fixed(val), 4);
     ui->pslider->setValue(val * 100);
 }
 
 void MainWindow::on_ibox_valueChanged(double val)
 {
+    current->write_as_int(ADDR_ICONSTANT, float_to_fixed(val), 4);
     ui->islider->setValue(val * 100);
 }
 
 void MainWindow::on_dbox_valueChanged(double val)
 {
+    current->write_as_int(ADDR_DCONSTANT, float_to_fixed(val), 4);
     ui->dslider->setValue(val * 100);
 }
 
@@ -223,10 +243,28 @@ void MainWindow::on_targetslider_valueChanged(int value)
 
 void MainWindow::on_targetbox_valueChanged(double val)
 {
+    if (pidmode != CMODE_NO_PID) {
+        current->set_target(val);
+    }
     ui->targetslider->setValue(val * 100);
 }
 
-void MainWindow::on_encreset_clicked()
+void MainWindow::on_targetmax_valueChanged(double val)
 {
-    current->write_encoder(0);
+    ui->targetslider->setMaximum(val * 100);
+}
+
+void MainWindow::on_targetmin_valueChanged(double val)
+{
+    ui->targetslider->setMinimum(val * 100);
+}
+
+void MainWindow::on_pidcontrol_clicked(bool checked)
+{
+    if (checked) {
+        pidmode = CMODE_POSITION_PID;
+    } else {
+        pidmode = CMODE_NO_PID;
+    }
+    current->set_mode(pidmode, DMODE_DRIVE_COAST);
 }

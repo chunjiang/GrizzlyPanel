@@ -15,6 +15,8 @@ class MainWindow : public QMainWindow
     Grizzly* all_grizzly[10];
     QTimer* timer;
     double unitconv;
+    int pidmode;
+    int last_ticks;
 
 public:
     explicit MainWindow(QWidget *parent = 0);
@@ -27,11 +29,11 @@ private slots:
 
     void on_accellimit_returnPressed();
 
-    void on_throttletarget_valueChanged(double arg1);
+    void on_throttletarget_valueChanged(double value);
 
-    void on_throttlemax_valueChanged(int arg1);
+    void on_throttlemax_valueChanged(int value);
 
-    void on_throttlemin_valueChanged(int arg1);
+    void on_throttlemin_valueChanged(int value);
 
     void on_isenabled_clicked(bool checked);
 
@@ -39,40 +41,44 @@ private slots:
 
     void on_encratio_returnPressed();
 
-    void on_pslider_valueChanged(int value);
 
     void on_throttleslider_valueChanged(int value);
 
-    void on_pmax_valueChanged(double arg1);
+    void on_pmax_valueChanged(double value);
 
-    void on_imax_valueChanged(double arg1);
+    void on_imax_valueChanged(double value);
 
-    void on_dmax_valueChanged(double arg1);
+    void on_dmax_valueChanged(double value);
 
-    void on_pmin_valueChanged(double arg1);
+    void on_pmin_valueChanged(double value);
 
-    void on_imin_valueChanged(double val);
+    void on_imin_valueChanged(double value);
 
-    void on_dmin_valueChanged(double val);
+    void on_dmin_valueChanged(double value);
 
-    void on_targetmax_valueChanged(double arg1);
+    void on_targetmax_valueChanged(double value);
 
-    void on_targetmin_valueChanged(double arg1);
+    void on_targetmin_valueChanged(double value);
+
+    void on_targetbox_valueChanged(double value);
+
+    void on_pslider_valueChanged(int value);
 
     void on_islider_valueChanged(int value);
 
-    void on_pbox_valueChanged(double arg1);
+    void on_dslider_valueChanged(int value);
 
     void on_targetslider_valueChanged(int value);
 
-    void on_dslider_valueChanged(int value);
+    void on_pbox_valueChanged(double arg1);
 
-    void on_ibox_valueChanged(double val);
+    void on_ibox_valueChanged(double arg1);
 
-    void on_dbox_valueChanged(double val);
+    void on_dbox_valueChanged(double arg1);
 
-    void on_targetbox_valueChanged(double val);
+    void on_encreset_clicked();
 
+    void on_pidcontrol_clicked(bool checked);
 
 private:
     Ui::MainWindow *ui;

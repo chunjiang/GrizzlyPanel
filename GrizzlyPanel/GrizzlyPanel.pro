@@ -13,11 +13,9 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp \
-    grizzlydata.cpp
+        mainwindow.cpp
 
-HEADERS  += mainwindow.h \
-    grizzlydata.h
+HEADERS  += mainwindow.h
 
 FORMS    += mainwindow.ui
 
