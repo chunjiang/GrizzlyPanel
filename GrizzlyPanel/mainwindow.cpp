@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <QTimer>
+#include "advanced.h"
+#include "ui_advanced.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -12,7 +14,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     unsigned char all_addr[10];
-    int num_grizzly = Grizzly::get_all_addr(all_addr);
+    num_grizzly = Grizzly::get_all_addr(all_addr);
     char name[5];
     name[0] = '0';
     name[1] = 'x';
@@ -21,13 +23,14 @@ MainWindow::MainWindow(QWidget *parent) :
         int_to_hex(all_addr[i], name + 2);
         ui->address_dropdown->addItem(name);
         all_grizzly[i] = new Grizzly(all_addr[i]);
+        all_grizzly[i]->set_mode(CMODE_NO_PID, DMODE_DRIVE_COAST);
     }
     if (num_grizzly > 0) {
         current = all_grizzly[0];
     } else {
         current = NULL;
     }
-    timer = new QTimer(parent);
+    timer = new QTimer(this);
     QObject::connect(timer, SIGNAL(timeout()), this, SLOT(show_feedback()));
     timer->start(250);
     unitconv = 1;
@@ -40,10 +43,18 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     pidmode = CMODE_NO_PID;
+
+    adv = new Advanced(this, &current);
 }
 
 MainWindow::~MainWindow()
 {
+    Grizzly::cleanup_all(0);
+    for (int i = 0; i < num_grizzly; i++) {
+        delete all_grizzly[i];
+    }
+    delete timer;
+    delete adv;
     delete ui;
 }
 
@@ -69,7 +80,9 @@ void MainWindow::show_feedback() {
     }
 
     if (!ui->throttletarget->hasFocus()) {
-        ui->throttletarget->setValue(current->read_target());
+        if (pidmode == CMODE_NO_PID) {
+            ui->throttletarget->setValue(current->read_target());
+        }
     }
 
     char mode = current->read_single_register(ADDR_MODE_RO);
@@ -78,7 +91,8 @@ void MainWindow::show_feedback() {
     }
 
     if (!ui->pidcontrol->hasFocus()) {
-        ui->pidcontrol->setChecked((mode & 0x06) == CMODE_POSITION_PID);
+        char cmode = mode & 0x06;
+        ui->pidcontrol->setChecked(cmode != CMODE_NO_PID);
     }
 
     if (!(ui->pslider->hasFocus() || ui->islider->hasFocus() || ui->dslider->hasFocus() || ui->pbox->hasFocus() || ui->ibox->hasFocus() || ui->dbox->hasFocus())) {
@@ -262,9 +276,14 @@ void MainWindow::on_targetmin_valueChanged(double val)
 void MainWindow::on_pidcontrol_clicked(bool checked)
 {
     if (checked) {
-        pidmode = CMODE_POSITION_PID;
+        pidmode = adv->cmode;
     } else {
         pidmode = CMODE_NO_PID;
     }
-    current->set_mode(pidmode, DMODE_DRIVE_COAST);
+    current->set_mode(pidmode, adv->dmode);
+}
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    adv->show();
 }

@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "grizzlypp.h"
+#include "advanced.h"
 
 namespace Ui {
 class MainWindow;
@@ -13,13 +14,15 @@ class MainWindow : public QMainWindow
     Q_OBJECT
     Grizzly* current;
     Grizzly* all_grizzly[10];
+    int num_grizzly;
     QTimer* timer;
     double unitconv;
-    int pidmode;
     int last_ticks;
+    Advanced* adv;
 
 public:
     explicit MainWindow(QWidget *parent = 0);
+    char pidmode;
     ~MainWindow();
 
 private slots:
@@ -40,7 +43,6 @@ private slots:
     void show_feedback();
 
     void on_encratio_returnPressed();
-
 
     void on_throttleslider_valueChanged(int value);
 
@@ -79,6 +81,9 @@ private slots:
     void on_encreset_clicked();
 
     void on_pidcontrol_clicked(bool checked);
+
+    void on_pushButton_2_clicked();
+
 
 private:
     Ui::MainWindow *ui;

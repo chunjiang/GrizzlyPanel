@@ -13,11 +13,14 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    advanced.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    advanced.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    advanced.ui
 
 INCLUDEPATH += $$PWD/include
 
